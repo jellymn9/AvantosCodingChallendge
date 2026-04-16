@@ -38,7 +38,6 @@ export type Adjacency = Record<string, string[]>;
 export type NormalizedGraph = {
   formsById: FormsById;
   reverseAdj: Adjacency;
-  adjacency: Adjacency;
 };
 
 function extractFields(fieldSchema?: ApiForm["field_schema"]): Array<string> {
@@ -102,30 +101,6 @@ function buildReverseAdj(
   return reverseAdj;
 }
 
-// source -> [targets]
-function buildAdjacency(
-  nodes: Array<ApiNode>,
-  edges: Array<ApiEdge>,
-): Adjacency {
-  const adjacency: Adjacency = {};
-
-  for (const node of nodes) {
-    adjacency[node.id] = [];
-  }
-
-  for (const edge of edges) {
-    const { source, target } = edge;
-
-    if (!adjacency[source]) {
-      adjacency[source] = [];
-    }
-
-    adjacency[source].push(target);
-  }
-
-  return adjacency;
-}
-
 export function normalizeGraph(
   data: ApiGraph | null | undefined,
 ): NormalizedGraph {
@@ -133,7 +108,6 @@ export function normalizeGraph(
     return {
       formsById: {},
       reverseAdj: {},
-      adjacency: {},
     };
   }
 
@@ -141,12 +115,10 @@ export function normalizeGraph(
 
   const formsById = buildFormsById(nodes, forms);
   const reverseAdj = buildReverseAdj(nodes, edges);
-  const adjacency = buildAdjacency(nodes, edges);
 
   return {
     formsById,
     reverseAdj,
-    adjacency,
   };
 }
 
