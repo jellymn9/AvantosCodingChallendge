@@ -1,73 +1,85 @@
-# React + TypeScript + Vite
+# Journey Builder – Prefill Mapping UI
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + TypeScript app for configuring how form fields are prefilled from upstream forms (DAG) or global data.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Run locally
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+yarn install
+yarn dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Run tests:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+yarn test
 ```
+
+---
+
+## Core idea
+
+Graph data is normalized into:
+
+- `formsById` — fast lookup
+- `reverseAdj` — parent relationships
+
+Upstream forms are resolved using recursive traversal, collecting all parent forms (including indirect ones).
+
+Field mappings are stored as:
+
+```typescript
+type MappingValue = {
+  type: "form_field" | "global";
+  sourceFormId?: string;
+  sourceField?: string;
+};
+```
+
+---
+
+## Add a new data source
+
+**1. Create a plugin:**
+
+```typescript
+import type { DataSourcePlugin } from "./types";
+
+export const customSource: DataSourcePlugin = {
+  id: "custom",
+  label: "Custom",
+  getOptions: () => [
+    {
+      label: "Example",
+      value: {
+        type: "global",
+        sourceField: "example",
+      },
+    },
+  ],
+};
+```
+
+**2. Register it in `dataSources.ts`:**
+
+```typescript
+import { upstreamSource } from "./upstreamSource";
+import { globalSource } from "./globalSource";
+import { customSource } from "./customSource";
+
+export const dataSources = [upstreamSource, globalSource, customSource];
+```
+
+No UI changes are required.
+
+---
+
+## Tests
+
+Tests focus on core logic:
+
+- normalization
+- graph traversal
+- data source plugins
